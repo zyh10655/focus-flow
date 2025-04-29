@@ -21,13 +21,21 @@ jobs:
           submodules: true
           lfs: false
       
-      # Add this step to clean Git config
-      - name: Clean Git Config
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      # Fix the Vite permission issue
+      - name: Install dependencies and fix permissions
         run: |
-          git config --global --unset-all http.https://github.com/.extraheader || true
+          npm ci
+          npm install -g vite
+          chmod +x node_modules/.bin/vite
       
       - name: Install OIDC Client from Core Package
         run: npm install @actions/core@1.6.0 @actions/http-client
+      
       - name: Get Id Token
         uses: actions/github-script@v6
         id: idtoken
@@ -36,6 +44,7 @@ jobs:
             const coredemo = require('@actions/core')
             return await coredemo.getIDToken()
           result-encoding: string
+      
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -44,5 +53,5 @@ jobs:
           action: "upload"
           app_location: "/" 
           api_location: ""
-          output_location: "build"
+          output_location: "dist"  # Note: Vite usually outputs to "dist" not "build"
           github_id_token: ${{ steps.idtoken.outputs.result }}
